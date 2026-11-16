@@ -51,7 +51,7 @@ jobs:
       - name: Review pull request
         id: review
         if: steps.current.outputs.current == 'true'
-        uses: narumiruna/pi-actions/review@10517c9297a5135606b2869f8d3781bfa7ea674d
+        uses: narumiruna/pi-actions/review@24fb9e5926addb78fa677046d582abdc725a4a05
         with:
           pull-request: ${{ inputs.pull-request }}
           auth-json: ${{ secrets.PI_AUTH_JSON }}
