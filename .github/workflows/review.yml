@@ -24,6 +24,7 @@ jobs:
     concurrency:
       group: pi-oauth-auth-json
       cancel-in-progress: false
+      queue: max
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -32,8 +33,29 @@ jobs:
           ref: ${{ github.sha }}
           persist-credentials: false
 
+      - name: Check queued event
+        id: current
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          number="$(jq -er '.number' "$GITHUB_EVENT_PATH")"
+          expected="$(jq -er '.pull_request.head.sha' "$GITHUB_EVENT_PATH")"
+          actual="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$number" | jq -er '.head.sha')"
+          if [[ "$actual" == "$expected" ]]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "current=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping a superseded pull request head."
+          fi
+
       - name: Review pull request
         id: review
+        if: steps.current.outputs.current == 'true'
         uses: ./review
         with:
           pull-request: ${{ inputs.pull-request }}

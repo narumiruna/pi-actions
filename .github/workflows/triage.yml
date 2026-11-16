@@ -15,6 +15,7 @@ jobs:
     concurrency:
       group: pi-oauth-auth-json
       cancel-in-progress: false
+      queue: max
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -23,8 +24,25 @@ jobs:
           ref: ${{ github.sha }}
           persist-credentials: false
 
+      - name: Check queued event
+        id: current
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          number="$(jq -er '.issue.number' "$GITHUB_EVENT_PATH")"
+          expected="$(jq -c '["open", .issue.title, (.issue.body // "")]' "$GITHUB_EVENT_PATH")"
+          actual="$(gh api "repos/$GITHUB_REPOSITORY/issues/$number" | jq -c '[.state, .title, (.body // "")]')"
+          if [[ "$actual" == "$expected" ]]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "current=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping a closed issue or superseded issue content."
+          fi
+
       - name: Classify issue
         id: triage
+        if: steps.current.outputs.current == 'true'
         uses: ./triage
         with:
           auth-json: ${{ secrets.PI_AUTH_JSON }}
