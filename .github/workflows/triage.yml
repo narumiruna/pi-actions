@@ -5,6 +5,7 @@ on:
     types: [opened, edited, reopened]
 
 permissions:
+  contents: read
   issues: write
 
 jobs:
@@ -18,6 +19,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
       - name: Check queued event
         id: current
         shell: bash
@@ -37,7 +43,7 @@ jobs:
       - name: Classify issue
         id: triage
         if: steps.current.outputs.current == 'true'
-        uses: narumiruna/pi-actions/triage@10517c9297a5135606b2869f8d3781bfa7ea674d
+        uses: ./triage
         with:
           auth-json: ${{ secrets.PI_AUTH_JSON }}
           auth-output: ${{ runner.temp }}/pi-triage-auth/auth.json
@@ -47,7 +53,7 @@ jobs:
 
       - name: Persist refreshed credentials
         if: always() && steps.triage.outcome != 'skipped'
-        uses: narumiruna/pi-actions/persist-auth@10517c9297a5135606b2869f8d3781bfa7ea674d
+        uses: ./persist-auth
         with:
           auth-file: ${{ runner.temp }}/pi-triage-auth/auth.json
           auth-json: ${{ secrets.PI_AUTH_JSON }}

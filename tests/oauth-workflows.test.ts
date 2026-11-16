@@ -20,7 +20,7 @@ function expectProtectedJob(example: string, action: string): void {
     "    concurrency:\n      group: pi-oauth-auth-json\n      cancel-in-progress: false\n",
   )
   expect(example).not.toMatch(/^concurrency:|cancel-in-progress: true|^ {4}env:/m)
-  expect(example).not.toMatch(/uses:\s+actions\/checkout@|github\.event\.pull_request\.head/)
+  expect(example).not.toContain("github.event.pull_request.head")
   expect(example).not.toMatch(/secrets: write|environments: write|write-all/i)
   for (const step of example.split(/^ {6}- name:/m)) {
     if (!step.startsWith(" Check queued event\n")) {
@@ -35,24 +35,22 @@ function expectProtectedJob(example: string, action: string): void {
   }
 }
 
-function expectStandaloneSteps(
-  example: string,
-  action: string,
-  revision = "<PUBLISHED_COMMIT_SHA>",
-): void {
+function expectStandaloneSteps(example: string, action: string, local = false): void {
   const consumerStart = example.indexOf("- name: Persist refreshed credentials")
   expect(consumerStart).toBeGreaterThan(0)
   const producer = example.slice(0, consumerStart)
   const consumer = example.slice(consumerStart)
   const path = `\${{ runner.temp }}/pi-${action}-auth/auth.json`
+  const prefix = local ? "./" : "narumiruna/pi-actions/"
+  const revision = local ? "" : "@<PUBLISHED_COMMIT_SHA>"
 
   expect(producer).toContain(`id: ${action}`)
-  expect(producer).toContain(`pi-actions/${action}@${revision}`)
+  expect(producer).toContain(`uses: ${prefix}${action}${revision}`)
   expect(producer).toContain(`auth-json: \${{ secrets.PI_AUTH_JSON }}`)
   expect(producer).toContain(`auth-output: ${path}`)
   expect(producer).not.toMatch(/PAT_TOKEN|auth-token:|auth-secret:|auth-environment:/)
   expect(consumer).toContain(`if: always() && steps.${action}.outcome != 'skipped'`)
-  expect(consumer).toContain(`pi-actions/persist-auth@${revision}`)
+  expect(consumer).toContain(`uses: ${prefix}persist-auth${revision}`)
   expect(consumer).toContain(`auth-file: ${path}`)
   expect(consumer).toContain(`auth-json: \${{ secrets.PI_AUTH_JSON }}`)
   expect(consumer).toContain(`token: \${{ secrets.PAT_TOKEN }}`)
@@ -95,6 +93,7 @@ for (const action of ["review", "triage"]) {
       expect(inline.length).toBeGreaterThan(0)
       for (const example of inline) {
         expectProtectedJob(example, action)
+        expect(example).not.toMatch(/uses:\s+actions\/checkout@/)
         expect(example).toContain(`pi-actions/${action}@<PUBLISHED_OAUTH_PERSISTENCE_COMMIT_SHA>`)
         expect(example).toContain(`auth-json: \${{ secrets.PI_AUTH_JSON }}`)
         expect(example).toContain("auth-secret: PI_AUTH_JSON")
@@ -108,6 +107,7 @@ for (const action of ["review", "triage"]) {
       expect(standalone.length).toBeGreaterThan(0)
       for (const example of standalone) {
         expectProtectedJob(example, action)
+        expect(example).not.toMatch(/uses:\s+actions\/checkout@/)
         expectStandaloneSteps(example, action)
       }
       const snippets = yamlExamples(readme).filter((value) => value.includes("auth-output:"))
@@ -115,13 +115,9 @@ for (const action of ["review", "triage"]) {
       for (const snippet of snippets) expectStandaloneSteps(snippet, action)
     })
 
-    test("uses pinned standalone persistence in the repository workflow", () => {
-      const revision = workflow.match(
-        new RegExp(`pi-actions/${action}@([a-f0-9]{40})\\s*$`, "m"),
-      )?.[1]
-      expect(revision).toBeDefined()
+    test("uses local standalone persistence in the repository workflow", () => {
       expectProtectedJob(workflow, action)
-      expectStandaloneSteps(workflow, action, revision)
+      expectStandaloneSteps(workflow, action, true)
       expect(workflow).not.toMatch(/auth-secret:|auth-environment:|auth-token:/)
     })
 
