@@ -7,15 +7,17 @@ without persistence settings keep their existing behavior.
 ## Activation gate
 
 Do not activate persistence until the owner has completed credential setup and
-the new action revision is published. Pin all actions to that reviewed revision.
-Do not add the new inputs to an older action revision.
+reviewed the action revision. In other repositories, publish and pin all actions
+to that reviewed revision. Do not add the new inputs to an older action revision.
 
 The repository's `.github/workflows/review.yml` and `triage.yml` use standalone
-persistence with pinned action revisions and the shared `pi-oauth` environment.
-Configure that environment's `PI_AUTH_JSON` and verify `PAT_TOKEN` permissions
-before enabling these workflow definitions. The examples below are templates for
-other repositories. External setup and controlled GitHub checks remain required;
-local tests do not establish production readiness.
+persistence with local action paths and the shared `pi-oauth` environment. They
+check out the trusted `${{ github.sha }}` with `persist-credentials: false`, never
+the pull request head. Configure that environment's `PI_AUTH_JSON` and verify
+`PAT_TOKEN` permissions before enabling these workflow definitions. The examples
+below are templates for other repositories and use published revisions. External
+setup and controlled GitHub checks remain required; local tests do not establish
+production readiness.
 
 ## Persistence modes
 

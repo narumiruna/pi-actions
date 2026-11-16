@@ -18,7 +18,7 @@ test("allows a manual target and passes it to the rebase action", () => {
   expect(workflow).toContain("\n  workflow_dispatch:\n    inputs:\n      pull-request:")
   expect(workflow).toContain("required: false\n        type: string")
   expect(workflow).toContain(`pull-request: \${{ inputs.pull-request }}`)
-  expect(workflow).toMatch(/^\s+- uses: narumiruna\/pi-actions\/rebase@[a-f0-9]{40}\s*$/m)
+  expect(workflow).toMatch(/^\s+- uses: \.\/rebase\s*$/m)
 })
 
 test("uses PAT_TOKEN so branch updates can trigger review workflows", () => {
@@ -34,13 +34,15 @@ test("keeps manual single-PR runs out of the batch scan concurrency group", () =
 })
 
 test("does not check out or execute pull request code", () => {
-  expect(workflow).not.toMatch(/uses:\s+actions\/checkout@/)
   expect(workflow).not.toContain("github.event.pull_request.head")
   expect(workflow).not.toMatch(/^\s+run:/m)
 })
 
-test("the guide's example matches the repository workflow", () => {
+test("the external usage example keeps the repository triggers, permissions, and inputs", () => {
   const example = guide.match(/```yaml\n([\s\S]+?)```/)?.[1]
   const withoutComments = workflow.replace(/^\s*#.*\n/gm, "")
-  expect(example).toBe(withoutComments)
+  expect(example).toContain(withoutComments.split("    steps:\n")[0])
+  expect(example).toContain(withoutComments.slice(withoutComments.lastIndexOf("        with:\n")))
+  expect(example).toMatch(/^\s+- uses: narumiruna\/pi-actions\/rebase@[a-f0-9]{40}\s*$/m)
+  expect(example).not.toMatch(/uses:\s+actions\/checkout@/)
 })

@@ -21,10 +21,16 @@ separate [persist-auth step](persist-auth/README.md). The separate step reuses
 runs after Pi, and a failed save cannot undo published comments or labels.
 
 Follow the [OAuth setup and migration guide](docs/oauth.md) for writer permissions, the shared
-job lock, recovery, and required live checks. Owner setup and a published, pinned
-action revision are required before activation. API-key examples are unchanged.
+job lock, recovery, and required live checks. Owner setup and a reviewed action
+revision are required before activation. Other repositories must use a published,
+pinned revision. API-key examples are unchanged.
 
 ## Development
+
+The review, triage, and rebase workflows check out the trusted `${{ github.sha }}`
+with `persist-credentials: false`, then use local paths: `./review`, `./triage`,
+`./rebase`, and `./persist-auth`. They never check out the pull request head.
+Examples in the action guides use published revisions for other repositories.
 
 Use Node.js 26, as in CI, and run:
 
