@@ -37,7 +37,7 @@ jobs:
       - name: Classify issue
         id: triage
         if: steps.current.outputs.current == 'true'
-        uses: narumiruna/pi-actions/triage@10517c9297a5135606b2869f8d3781bfa7ea674d
+        uses: narumiruna/pi-actions/triage@24fb9e5926addb78fa677046d582abdc725a4a05
         with:
           auth-json: ${{ secrets.PI_AUTH_JSON }}
           auth-output: ${{ runner.temp }}/pi-triage-auth/auth.json
